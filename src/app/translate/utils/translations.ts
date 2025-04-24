@@ -1,4 +1,4 @@
-// Dummy translations data for Chinese and English
+// Dummy translations data for Chinese and English - used as fallback
 export const dummyTranslations = {
   english_to_chinese: {
     "How are you?": "你好吗？",
@@ -52,3 +52,32 @@ export const supportedLanguages = [
   { code: "english", name: "English" },
   { code: "chinese", name: "Chinese" },
 ];
+
+// Function to fetch translations from server API
+export const fetchTranslations = async () => {
+  try {
+    const response = await fetch('/api/translations');
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch translations');
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Unknown error occurred');
+    }
+    
+    return {
+      translations: data.translations,
+      alternatives: data.alternatives || {}
+    };
+  } catch (error) {
+    console.error('Error fetching translations:', error);
+    // Return dummy translations as fallback
+    return {
+      translations: dummyTranslations,
+      alternatives: alternativeTranslations
+    };
+  }
+};
