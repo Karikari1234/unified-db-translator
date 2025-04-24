@@ -25,12 +25,12 @@ export default function TranslatePage() {
     const translationMap = 
       sourceLanguage === "english" ? dummyTranslations.english_to_chinese : dummyTranslations.chinese_to_english;
     
-    const translated = translationMap[text] || "";
+    const translated = translationMap[text as keyof typeof translationMap] || "";
     setOutputText(translated);
     
     // Update alternative translations if available
-    if (alternativeTranslations[text]) {
-      setCurrentAlternatives(alternativeTranslations[text]);
+    if (alternativeTranslations[text as keyof typeof alternativeTranslations]) {
+      setCurrentAlternatives(alternativeTranslations[text as keyof typeof alternativeTranslations]);
     } else {
       setCurrentAlternatives([]);
     }
