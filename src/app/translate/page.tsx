@@ -6,6 +6,7 @@ import TranslatorHeader from "./components/translator-header";
 import TranslatorInput from "./components/translator-input";
 import TranslatorOutput from "./components/translator-output";
 import AlternativeTranslations from "./components/alternative-translations";
+import TranslationList from "./components/translation-list";
 import { Card } from "@/components/ui/card";
 import {
   dummyTranslations,
@@ -27,6 +28,8 @@ export default function TranslatePage() {
   const [alternatives, setAlternatives] = useState(alternativeTranslations);
   const [isLoading, setIsLoading] = useState(true);
   const [suggestions, setSuggestions] = useState<TranslationItem[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20; // Number of items per pagination page
   
   // Debounce the input text to prevent excessive searches
   const debouncedInputText = useDebounce(inputText, 300);
@@ -127,6 +130,16 @@ export default function TranslatePage() {
     setTargetLanguage(language);
   };
 
+  // Function to handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to translation list
+    const translationListElement = document.getElementById('translation-list');
+    if (translationListElement) {
+      translationListElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       {isLoading ? (
@@ -134,36 +147,48 @@ export default function TranslatePage() {
           <div className="text-xl font-medium">Loading translations...</div>
         </div>
       ) : (
-        <Card className="shadow-lg overflow-hidden">
-          <TranslatorHeader
-            sourceLanguage={sourceLanguage}
-            targetLanguage={targetLanguage}
-            onSwapLanguages={handleSwapLanguages}
-            onSourceLanguageChange={handleSourceLanguageChange}
-            onTargetLanguageChange={handleTargetLanguageChange}
-          />
-
-          <div className="p-4 md:p-6">
-            <TranslatorInput
+        <>
+          <Card className="shadow-lg overflow-hidden mb-8">
+            <TranslatorHeader
               sourceLanguage={sourceLanguage}
-              text={inputText}
-              onChange={handleInputChange}
-              suggestions={suggestions}
-              onSuggestionSelect={handleSuggestionSelect}
-            />
-
-            <TranslatorOutput
               targetLanguage={targetLanguage}
-              text={outputText}
+              onSwapLanguages={handleSwapLanguages}
+              onSourceLanguageChange={handleSourceLanguageChange}
+              onTargetLanguageChange={handleTargetLanguageChange}
             />
 
-            {currentAlternatives && currentAlternatives.length > 0 && (
-              <AlternativeTranslations
-                alternativeTranslations={currentAlternatives}
+            <div className="p-4 md:p-6">
+              <TranslatorInput
+                sourceLanguage={sourceLanguage}
+                text={inputText}
+                onChange={handleInputChange}
+                suggestions={suggestions}
+                onSuggestionSelect={handleSuggestionSelect}
               />
-            )}
+
+              <TranslatorOutput
+                targetLanguage={targetLanguage}
+                text={outputText}
+              />
+
+              {currentAlternatives && currentAlternatives.length > 0 && (
+                <AlternativeTranslations
+                  alternativeTranslations={currentAlternatives}
+                />
+              )}
+            </div>
+          </Card>
+          
+          <div id="translation-list">
+            <TranslationList 
+              translations={sourceLanguage === "chinese" ? translations.chinese_to_english : translations.english_to_chinese}
+              currentPage={currentPage}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              sourceLanguage={sourceLanguage}
+            />
           </div>
-        </Card>
+        </>
       )}
     </div>
   );
