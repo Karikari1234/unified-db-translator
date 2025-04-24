@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import TranslatorHeader from "./components/translator-header";
 import TranslatorInput from "./components/translator-input";
 import TranslatorOutput from "./components/translator-output";
@@ -12,6 +12,8 @@ import {
   alternativeTranslations,
   fetchTranslations,
 } from "./utils/translations";
+import { createSearchIndex, findSuggestions, TranslationItem } from "./utils/fuzzySearch";
+import useDebounce from "@/hooks/useDebounce";
 
 export default function TranslatePage() {
   const [sourceLanguage, setSourceLanguage] = useState("english");
@@ -24,6 +26,19 @@ export default function TranslatePage() {
   const [translations, setTranslations] = useState(dummyTranslations);
   const [alternatives, setAlternatives] = useState(alternativeTranslations);
   const [isLoading, setIsLoading] = useState(true);
+  const [suggestions, setSuggestions] = useState<TranslationItem[]>([]);
+  
+  // Debounce the input text to prevent excessive searches
+  const debouncedInputText = useDebounce(inputText, 300);
+  
+  // Create search indices based on current translations
+  const englishSearchIndex = useMemo(() => 
+    createSearchIndex(translations.english_to_chinese, 'english')
+  , [translations]);
+  
+  const chineseSearchIndex = useMemo(() => 
+    createSearchIndex(translations.chinese_to_english, 'chinese')
+  , [translations]);
 
   // Load translations from server on component mount
   useEffect(() => {
@@ -51,6 +66,17 @@ export default function TranslatePage() {
   useEffect(() => {
     updateTranslation(inputText);
   }, [inputText, sourceLanguage, targetLanguage, translations, alternatives]);
+  
+  // Update suggestions when debounced input text changes
+  useEffect(() => {
+    if (debouncedInputText.trim().length > 0) {
+      const searchIndex = sourceLanguage === "english" ? englishSearchIndex : chineseSearchIndex;
+      const newSuggestions = findSuggestions(searchIndex, debouncedInputText, 5);
+      setSuggestions(newSuggestions);
+    } else {
+      setSuggestions([]);
+    }
+  }, [debouncedInputText, sourceLanguage, englishSearchIndex, chineseSearchIndex]);
 
   // Function to get translation based on current languages
   const updateTranslation = (text: string) => {
@@ -82,6 +108,13 @@ export default function TranslatePage() {
   // Handle input change
   const handleInputChange = (value: string) => {
     setInputText(value);
+    // Suggestions will be updated by the debounced effect
+  };
+  
+  // Handle suggestion selection
+  const handleSuggestionSelect = (suggestion: TranslationItem) => {
+    setInputText(suggestion.text);
+    updateTranslation(suggestion.text);
   };
 
   // Handle source language change
@@ -115,6 +148,8 @@ export default function TranslatePage() {
               sourceLanguage={sourceLanguage}
               text={inputText}
               onChange={handleInputChange}
+              suggestions={suggestions}
+              onSuggestionSelect={handleSuggestionSelect}
             />
 
             <TranslatorOutput

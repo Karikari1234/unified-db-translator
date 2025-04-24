@@ -4,6 +4,27 @@ import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
 
+// Define proper interfaces for type safety
+interface TranslationRecord {
+  english: string;
+  chinese: string;
+  [key: string]: string; // Allow for additional fields
+}
+
+interface TranslationMap {
+  [key: string]: string;
+}
+
+interface TranslationsObject {
+  english_to_chinese: TranslationMap;
+  chinese_to_english: TranslationMap;
+}
+
+interface AlternativeTranslation {
+  text: string;
+  translation: string;
+}
+
 // This is a server-side function that reads the CSV file and processes it
 export async function GET() {
   try {
@@ -28,16 +49,16 @@ export async function GET() {
     const records = parseResult.data;
 
     // Create the translation objects with the format needed by the application
-    const translations = {
+    const translations: TranslationsObject = {
       english_to_chinese: {},
       chinese_to_english: {},
     };
 
     // Generate alternative translations (empty for now - could be enhanced later)
-    const alternatives: Record<string, any[]> = {};
+    const alternatives: Record<string, AlternativeTranslation[]> = {};
 
     // Convert the records to the format needed by the application
-    records.forEach((record: any) => {
+    (records as any[]).forEach((record: TranslationRecord) => {
       if (record.english && record.chinese) {
         // Add to english_to_chinese mapping
         translations.english_to_chinese[record.english] = record.chinese;

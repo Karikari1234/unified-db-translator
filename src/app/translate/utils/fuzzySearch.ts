@@ -1,4 +1,5 @@
-import Fuse from 'fuse.js';
+/* eslint-disable */
+import Fuse from "fuse.js";
 
 // Interface for translation items
 export interface TranslationItem {
@@ -12,16 +13,18 @@ export function createSearchIndex(
   sourceLanguage: string
 ): Fuse<TranslationItem> {
   // Convert the translations dictionary to an array of items
-  const items: TranslationItem[] = Object.entries(translations).map(([key, value]) => ({
-    text: key,
-    translation: value,
-  }));
+  const items: TranslationItem[] = Object.entries(translations).map(
+    ([key, value]) => ({
+      text: key,
+      translation: value,
+    })
+  );
 
   // Configure Fuse.js options
   const options = {
     includeScore: true,
     threshold: 0.4, // Lower values are more strict
-    keys: ['text'],
+    keys: ["text"],
   };
 
   // Create and return the Fuse instance

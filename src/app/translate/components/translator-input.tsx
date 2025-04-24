@@ -1,20 +1,81 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { TranslationItem } from "../utils/fuzzySearch";
+import SuggestionDropdown from "./suggestion-dropdown";
 
 interface TranslatorInputProps {
   sourceLanguage: string;
   text: string;
   onChange: (value: string) => void;
+  suggestions: TranslationItem[];
+  onSuggestionSelect: (suggestion: TranslationItem) => void;
 }
 
 export default function TranslatorInput({
   sourceLanguage,
   text,
-  onChange
+  onChange,
+  suggestions,
+  onSuggestionSelect
 }: TranslatorInputProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Handle keyboard navigation for suggestions
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // If no suggestions or not showing suggestions, do nothing
+    if (!suggestions.length || !showSuggestions) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
+          onSuggestionSelect(suggestions[highlightedIndex]);
+          setShowSuggestions(false);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setShowSuggestions(false);
+        break;
+    }
+  };
+  
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Show suggestions when input is focused and has content
+  useEffect(() => {
+    setShowSuggestions(isFocused && text.length > 0 && suggestions.length > 0);
+    setHighlightedIndex(-1); // Reset highlighted index when suggestions change
+  }, [isFocused, text, suggestions]);
   
   // Format language name for display
   const formatLanguage = (language: string) => {
@@ -30,12 +91,24 @@ export default function TranslatorInput({
       
       <div className={`relative border rounded-md transition-colors ${isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`}>
         <textarea
+          ref={inputRef}
           value={text}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 200)} // Delay to allow suggestion clicks
+          onKeyDown={handleKeyDown}
           className="w-full min-h-[100px] p-3 bg-transparent text-sm sm:text-base focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 resize-none"
           placeholder={`Enter text in ${sourceLanguage}`}
+        />
+        
+        <SuggestionDropdown
+          suggestions={suggestions}
+          isVisible={showSuggestions}
+          onSelect={(suggestion) => {
+            onSuggestionSelect(suggestion);
+            setShowSuggestions(false);
+          }}
+          highlightedIndex={highlightedIndex}
         />
         
         <div className="absolute bottom-2 right-2 flex space-x-1 sm:space-x-2">
@@ -76,6 +149,12 @@ export default function TranslatorInput({
           </Button>
         </div>
       </div>
+      
+      {suggestions.length > 0 && text.length > 0 && (
+        <div className="mt-2 text-xs text-gray-500">
+          {suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''} available. Use up/down arrows to navigate.
+        </div>
+      )}
     </div>
   );
 }
